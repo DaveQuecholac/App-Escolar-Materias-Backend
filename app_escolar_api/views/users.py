@@ -7,6 +7,7 @@ from rest_framework import permissions
 from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.authentication import SessionAuthentication
 from django.contrib.auth.models import Group
 from django.shortcuts import get_object_or_404
 import json
@@ -26,7 +27,13 @@ class AdminView(generics.CreateAPIView):
     def get_permissions(self):
         if self.request.method in ['GET', 'PUT', 'DELETE']:
             return [permissions.IsAuthenticated()]
-        return []  # POST no requiere autenticación
+        return [permissions.AllowAny()]  # POST no requiere autenticación
+    
+    # Autenticación por método (desactiva autenticación para POST para evitar CSRF)
+    def get_authenticators(self):
+        if self.request.method == 'POST':
+            return []  # POST no requiere autenticación (evita validación CSRF)
+        return super().get_authenticators()  # GET, PUT, DELETE usan autenticación normal
     
     #Obtener usuario por ID
     def get(self, request, *args, **kwargs):
@@ -106,8 +113,15 @@ class AdminView(generics.CreateAPIView):
         return Response({"message": "Administrador actualizado correctamente", "admin": AdminSerializer(admin).data}, 200)
         # return Response(user,200)
         
-    # Eliminar administrador con delete (Borrar realmente)
-    # TODO: Agregar eliminación de administradores
+    # Eliminar administrador con delete 
+    @transaction.atomic
+    def delete(self, request, *args, **kwargs):
+        admin = get_object_or_404(Administradores, id=request.GET.get("id"))
+        try:
+            admin.user.delete()
+            return Response({"details":"Administrador eliminado"},200)
+        except Exception as e:
+            return Response({"details":"Algo pasó al eliminar"},400)
         
 class TotalUsers(generics.CreateAPIView):
     #Contar el total de cada tipo de usuarios

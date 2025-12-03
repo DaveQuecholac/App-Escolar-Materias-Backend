@@ -8,6 +8,7 @@ from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
 from django.contrib.auth.models import Group
+from django.shortcuts import get_object_or_404
 
 class AlumnosAll(generics.CreateAPIView):
     #Verificar si el usuario esta autenticado
@@ -27,7 +28,10 @@ class AlumnosView(generics.CreateAPIView):
         return []  # POST no requiere autenticación
     
     #Obtener alumno por ID
-    # TODO: Agregar obtención de alumno por ID
+    def get(self, request, *args, **kwargs):
+        alumno = get_object_or_404(Alumnos, id=request.GET.get("id"))
+        alumno = AlumnoSerializer(alumno, many=False).data
+        return Response(alumno, 200)
     
     #Registrar nuevo usuario
     @transaction.atomic
@@ -78,7 +82,32 @@ class AlumnosView(generics.CreateAPIView):
         return Response(user.errors, status=status.HTTP_400_BAD_REQUEST)
     
     # Actualizar datos del alumno
-    # TODO: Agregar actualización de alumnos
+    @transaction.atomic
+    def put(self, request, *args, **kwargs):
+        alumno = get_object_or_404(Alumnos, id=request.data["id"])
+        alumno.matricula = request.data["matricula"]
+        alumno.curp = request.data["curp"].upper()
+        alumno.rfc = request.data["rfc"].upper()
+        alumno.fecha_nacimiento = request.data["fecha_nacimiento"]
+        alumno.edad = request.data["edad"]
+        alumno.telefono = request.data["telefono"]
+        alumno.ocupacion = request.data["ocupacion"]
+        alumno.save()
+        
+        # Actualizamos los datos del usuario asociado
+        user = alumno.user
+        user.first_name = request.data["first_name"]
+        user.last_name = request.data["last_name"]
+        user.save()
+        
+        return Response({"message": "Alumno actualizado correctamente", "alumno": AlumnoSerializer(alumno).data}, 200)
     
     # Eliminar alumno con delete (Borrar realmente)
-    # TODO: Agregar eliminación de alumnos
+    @transaction.atomic
+    def delete(self, request, *args, **kwargs):
+        alumno = get_object_or_404(Alumnos, id=request.GET.get("id"))
+        try:
+            alumno.user.delete()
+            return Response({"details":"Alumno eliminado"},200)
+        except Exception as e:
+            return Response({"details":"Algo pasó al eliminar"},400)
