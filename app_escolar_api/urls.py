@@ -7,6 +7,7 @@ from app_escolar_api.views import bootstrap
 from app_escolar_api.views import users
 from app_escolar_api.views import alumnos
 from app_escolar_api.views import maestros
+from app_escolar_api.views import materias
 from app_escolar_api.views import auth
 
 
@@ -25,8 +26,14 @@ urlpatterns = [
         path('lista-maestros/', maestros.MaestrosAll.as_view()),
     #Listar Alumnos
         path('lista-alumnos/', alumnos.AlumnosAll.as_view()),
+    #Create Materia
+        path('materias/', materias.MateriasView.as_view()),
+    #Listar Materias
+        path('lista-materias/', materias.MateriasAll.as_view()),
     #Total de usuarios
         path('total-usuarios/', users.TotalUsers.as_view()),
+    #Total de materias
+        path('total-materias/', materias.TotalMaterias.as_view()),
     #Login
         path('login/', auth.CustomAuthToken.as_view()),
     #Logout
